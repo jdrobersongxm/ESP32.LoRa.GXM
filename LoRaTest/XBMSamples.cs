@@ -1,5 +1,4 @@
 ﻿using Lora.GXM.OledDisplay1306;
-using System;
 
 namespace Lora.GXM.LoraTest
 {

@@ -8,13 +8,14 @@ using Lora.GXM.WifiKit32Common;
 
 namespace Lora.GXM.LoraTest
 {
-    class HeltecOled 
+    internal class HeltecOled
     {
-        GpioPin oledVext=null;
-        GpioPin oledReset = null;
-        I2cDevice i2cBusSSD1306 = null;
+        private GpioPin oledVext = null;
+        private GpioPin oledReset = null;
+        private I2cDevice i2cBusSSD1306 = null;
 
-        SSD1306Driver ssd1306;
+        private SSD1306Driver ssd1306;
+
         public SSD1306Driver Display
         {
             get { return ssd1306; }
@@ -28,7 +29,6 @@ namespace Lora.GXM.LoraTest
             oledReset = gpioc.OpenPin(OnBoardOled.Reset, PinMode.Output);
         }
 
-
         public void Begin()
         {
             this.PowerON();
@@ -38,11 +38,9 @@ namespace Lora.GXM.LoraTest
             Configuration.SetPinFunction(OnBoardOled.Data, DeviceFunction.I2C1_DATA);
             Configuration.SetPinFunction(OnBoardOled.Clock, DeviceFunction.I2C1_CLOCK);
 
-
             i2cBusSSD1306 = I2cDevice.Create(new I2cConnectionSettings(1, OnBoardOled.I2CAddress, I2cBusSpeed.FastMode));
 
-
-            ssd1306 = new SSD1306Driver(i2cBusSSD1306,oledReset,50 /* Heltec onboard oled support 0ms */);
+            ssd1306 = new SSD1306Driver(i2cBusSSD1306, oledReset, 50 /* Heltec onboard oled support 0ms */);
 
             ssd1306.Init();
             //ssd1306.FlipScreenVertically();
