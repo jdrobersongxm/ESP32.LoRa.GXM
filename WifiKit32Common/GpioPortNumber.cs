@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Lora.GXM.WifiKit32Common
+﻿namespace Lora.GXM.WifiKit32Common
 {
 
     /// <summary>

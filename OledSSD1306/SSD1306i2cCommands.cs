@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Lora.GXM.OledDisplay1306
+﻿namespace Lora.GXM.OledDisplay1306
 {
     /// <summary>
     /// I2C command value for SSD1306 oled screen driver

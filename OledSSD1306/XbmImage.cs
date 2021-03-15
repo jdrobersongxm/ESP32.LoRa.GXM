@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Lora.GXM.OledDisplay1306
+﻿namespace Lora.GXM.OledDisplay1306
 {
     /// <summary>
     /// XBM image

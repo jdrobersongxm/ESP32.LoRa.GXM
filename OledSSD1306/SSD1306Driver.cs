@@ -1,17 +1,17 @@
 ﻿/*********************************************************************************************
- * SSD1306 library - 
+ * SSD1306 library -
  * This C# library is orignally based on the original C/C++ Thingpulse Arduino SSD1306 library.
  * It has been redesigned to respect C#/.Net/Nanoframework best practices, constraint & optimization.
- * 
+ *
  * (c) Nicolas Clerc - Novembre 2020
- * 
- * 
+ *
+ *
  *-------- LICENSE
  * The MIT License (MIT)
  *
  * Original C library Copyright (c) 2020 by ThingPulse, Daniel Eichhorn
  * Copyright (c) 2020 by Nicolas CLERC for the C# port
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -32,7 +32,6 @@
  *
  */
 
-
 using System;
 using System.Device.Gpio;
 using System.Threading;
@@ -47,7 +46,7 @@ namespace Lora.GXM.OledDisplay1306
     {
         Black = 0,
         White = 1,
-        Inverse= 2
+        Inverse = 2
     };
 
     /// <summary>
@@ -76,68 +75,62 @@ namespace Lora.GXM.OledDisplay1306
         //CenterBoth = 3
     };
 
-
     public partial class SSD1306Driver : IDisposable
     {
-
         public byte DisplayWidth => _displayWidth;
-        readonly byte _displayWidth = 128;
+        private readonly byte _displayWidth = 128;
 
         public byte DisplayHeight => _displayHeight;
-        readonly byte _displayHeight = 64;
+        private readonly byte _displayHeight = 64;
 
-        readonly int _displayBufferSize = 1024;
+        private readonly int _displayBufferSize = 1024;
 
-        readonly int _i2cPostCommandSleep=50; // Default in thingpulse code is 50ms. Heltec with onboard screen works fine with 0ms. 
+        private readonly int _i2cPostCommandSleep = 50; // Default in thingpulse code is 50ms. Heltec with onboard screen works fine with 0ms.
         public int I2CPostCommandSleep { get { return _i2cPostCommandSleep; } }
-
 
         //public TextAlignment CurrentTextAlignement { get => _currentTextAlignement; set => _currentTextAlignement = value; }
         //TextAlignment _currentTextAlignement = TextAlignment.Left;
 
-
         public OledColor CurrentColor { get => _currentColor; set => _currentColor = value; }
-        OledColor _currentColor = OledColor.White;
+        private OledColor _currentColor = OledColor.White;
 
         /// <summary>
         /// I2C commands value used by the SSD1306 libraray
         /// </summary>
-      
-        byte[] displayBuffer =null;
+
+        private byte[] displayBuffer = null;
 
         private I2cDevice i2cbus = null;
-        private GpioPin resetPin=null;
+        private GpioPin resetPin = null;
 
-        public SSD1306Driver(I2cDevice i2cbus,GpioPin resetPin,int i2cPostCommandSleep=50)
+        public SSD1306Driver(I2cDevice i2cbus, GpioPin resetPin, int i2cPostCommandSleep = 50)
         {
             if (i2cbus == null)
-                throw new ArgumentException("I2cDevice instance cannot be null.",nameof(i2cbus));
+                throw new ArgumentException("I2cDevice instance cannot be null.", nameof(i2cbus));
             this.i2cbus = i2cbus;
             this.resetPin = resetPin;
         }
 
-
-        public void Init() 
+        public void Init()
         {
             if (displayBuffer == null)
                 displayBuffer = new byte[_displayBufferSize];
             Clear();
-            ResetDisplay(); 
+            ResetDisplay();
             SendInitCommand();
             RefreshDisplay();
             DisplayOn();
         }
-        
-        
+
         /// <summary>
         /// This test methid fill the display buffer with random value
-        /// 0: random pixel fill 
+        /// 0: random pixel fill
         /// 1: alternate vertical line
         /// 2: alternate thick vertical line
         /// 3:thin horizontal line
         /// 4: first 1288 byte of display buffer set to 128+16 (usefull for origin align test)
         /// </summary>
-        public void TestFill(int pattern=0)
+        public void TestFill(int pattern = 0)
         {
             Clear();
             switch (pattern)
@@ -146,13 +139,15 @@ namespace Lora.GXM.OledDisplay1306
                     Random rnd = new Random((int)DateTime.UtcNow.Ticks);
                     rnd.NextBytes(displayBuffer);
                     break;
-                case 1: // alternate vertical line 
+
+                case 1: // alternate vertical line
                     for (int i = 0; i < displayBuffer.Length;)
                     {
                         displayBuffer[i++] = 0;
                         displayBuffer[i++] = 255;
                     }
                     break;
+
                 case 2: // alternate thick vertical line
                     for (int i = 0; i < displayBuffer.Length;)
                     {
@@ -160,26 +155,29 @@ namespace Lora.GXM.OledDisplay1306
                         displayBuffer[i++] = 255; displayBuffer[i++] = 255; displayBuffer[i++] = 255; displayBuffer[i++] = 255;
                     }
                     break;
+
                 case 3: // thin horizontal line
-                    for (int i = 0; i < displayBuffer.Length;i++)
+                    for (int i = 0; i < displayBuffer.Length; i++)
                     {
-                        displayBuffer[i++] = 16; 
+                        displayBuffer[i++] = 16;
                     }
                     break;
+
                 case 4: // first 128 byte set to same value
                     for (int i = 0; i < 128; i++)
                     {
                         //displayBuffer[1023 - i] = 255;
-                        displayBuffer[i] = 128+16;
+                        displayBuffer[i] = 128 + 16;
                     }
                     break;
+
                 default:
                     throw new ArgumentException("Invalid pattern value", "pattern");
             }
         }
 
         /// <summary>
-        /// Switching off/on eletrical power of oled screen. 
+        /// Switching off/on eletrical power of oled screen.
         /// It gpio reset pin not provider, nothing happens.
         /// </summary>
         public void Reset()
@@ -190,7 +188,6 @@ namespace Lora.GXM.OledDisplay1306
             Thread.Sleep(100);
         }
 
-
         /// <summary>
         /// Clear the display buffer (set all pixel to 0)
         /// </summary>
@@ -199,6 +196,7 @@ namespace Lora.GXM.OledDisplay1306
             for (int n = 0; n < displayBuffer.Length; n++)
                 displayBuffer[n] = 0;
         }
+
         /// <summary>
         /// Send the current display buffer to oled.
         /// </summary>
@@ -208,12 +206,11 @@ namespace Lora.GXM.OledDisplay1306
 
             SendI2CCommand(Commands.ColumnAddress);
             SendI2CCommand(x_offset);
-            SendI2CCommand((byte)(x_offset + (_displayWidth - 1 )));
-            
+            SendI2CCommand((byte)(x_offset + (_displayWidth - 1)));
 
             SendI2CCommand(Commands.PageAddress);
             SendI2CCommand(0x00);
-            SendI2CCommand((byte)((_displayHeight/8)-1));
+            SendI2CCommand((byte)((_displayHeight / 8) - 1));
 
             //if (geometry == GEOMETRY_128_64)
             //{
@@ -225,24 +222,20 @@ namespace Lora.GXM.OledDisplay1306
             //}
             SendI2CCommand(0x0); // VALID VALUE FOR WIFIKIT32
 
-
-            byte[] img = new byte[displayBuffer.Length+1];
+            byte[] img = new byte[displayBuffer.Length + 1];
             img[0] = (Byte)Commands.SetStartLine;
             Array.Copy(displayBuffer, 0, img, 1, displayBuffer.Length);
             Thread.Sleep(_i2cPostCommandSleep);
             i2cbus.Write(img); // Send the display buffer to the screen
         }
 
-
-            private void ResetDisplay()
+        private void ResetDisplay()
         {
             resetPin?.Write(PinValue.Low);
             Thread.Sleep(_i2cPostCommandSleep);
             resetPin?.Write(PinValue.High);
             Thread.Sleep(_i2cPostCommandSleep);
         }
-
-
 
         /// <summary>
         /// Send I2C command to the current i2c bus
@@ -254,8 +247,6 @@ namespace Lora.GXM.OledDisplay1306
             i2cbus.Write(new byte[] { 0x00, cmd }); // TODO: replace with a preallocated buffer
             Thread.Sleep(_i2cPostCommandSleep);
         }
-
-
 
         /// <summary>
         /// Send the initialization sequence of command to active the oled screen.
@@ -334,13 +325,12 @@ namespace Lora.GXM.OledDisplay1306
         }
 
         /// <summary>
-        /// Deactivate display 
+        /// Deactivate display
         /// </summary>
         public void DisplayOff()
         {
             SendI2CCommand(Commands.DisplayOff);
         }
-
 
         /// <summary>
         /// Invert display color (pixel set to 0 = light on)
@@ -358,8 +348,6 @@ namespace Lora.GXM.OledDisplay1306
             SendI2CCommand(Commands.NormalDisplay);
         }
 
-
-
         /// <summary>
         /// Define the oled crontrast & brightness
         /// Really low brightness & contrast: contrast = 10, precharge = 5, comdetect = 0
@@ -369,7 +357,7 @@ namespace Lora.GXM.OledDisplay1306
         /// <param name="contrastValue">0 to 255. Default is 0xCF</param>
         /// <param name="precharge">1 to 0x1F for low contrast, 0xF1 default. </param>
         /// <param name="comdetect">0 for low contract, Default is 0x40</param>
-        public void SetContrast(byte contrastValue=0xCF,byte precharge=0xF1,byte comdetect=0x40)
+        public void SetContrast(byte contrastValue = 0xCF, byte precharge = 0xF1, byte comdetect = 0x40)
         {
             SendI2CCommand(Commands.SetPreCharge);
             SendI2CCommand(precharge); //0xF1 default, to lower the contrast, put 1-1F
@@ -394,11 +382,11 @@ namespace Lora.GXM.OledDisplay1306
             else
                 contrast = (byte)(brightness * 1.171 - 43);
 
-            SetContrast(contrast, (brightness==0)? (byte)0 : (byte)241,(byte)(brightness / 8));
+            SetContrast(contrast, (brightness == 0) ? (byte)0 : (byte)241, (byte)(brightness / 8));
         }
 
         /// <summary>
-        /// Restore native screen orientation/morroring 
+        /// Restore native screen orientation/morroring
         /// </summary>
         public void ResetOrientation()
         {
@@ -421,7 +409,7 @@ namespace Lora.GXM.OledDisplay1306
             SendI2CCommand(Commands.ComScanDec); //Mirror screen
         }
 
-        public void SetLogBuffer(UInt16 lines,UInt16 chars)
+        public void SetLogBuffer(UInt16 lines, UInt16 chars)
         {
             throw new NotImplementedException();
         }
@@ -430,8 +418,6 @@ namespace Lora.GXM.OledDisplay1306
         {
             throw new NotImplementedException();
         }
-
-
 
         public void Dispose()
         {

@@ -3,28 +3,28 @@ using System.Diagnostics;
 
 namespace Lora.GXM.OledDisplay1306
 {
-
     public partial class SSD1306Driver
     {
-        const int JUMPTABLE_BYTES = 4;
-        const int JUMPTABLE_LSB = 1;
-        const int JUMPTABLE_SIZE = 2;
-        const int JUMPTABLE_WIDTH = 3;
-        const int JUMPTABLE_START = 4;
-        const int WIDTH_POS = 0;
-        const int HEIGHT_POS = 1;
-        const int FIRST_CHAR_POS = 2;
-        const int CHAR_NUM_POS = 3;
+        private const int JUMPTABLE_BYTES = 4;
+        private const int JUMPTABLE_LSB = 1;
+        private const int JUMPTABLE_SIZE = 2;
+        private const int JUMPTABLE_WIDTH = 3;
+        private const int JUMPTABLE_START = 4;
+        private const int WIDTH_POS = 0;
+        private const int HEIGHT_POS = 1;
+        private const int FIRST_CHAR_POS = 2;
+        private const int CHAR_NUM_POS = 3;
 
-        Font _currentFont = null;
-        byte[] _currentFontData = null;
+        private Font _currentFont = null;
+        private byte[] _currentFontData = null;
 
-        TextAlignment _currentTextAlignement;
-        public TextAlignment CurrentTextAlignement { 
-            get=>_currentTextAlignement; 
-            set { _currentTextAlignement = value; } 
+        private TextAlignment _currentTextAlignement;
+
+        public TextAlignment CurrentTextAlignement
+        {
+            get => _currentTextAlignement;
+            set { _currentTextAlignement = value; }
         }
-
 
         /// <summary>
         /// get/set the current font data
@@ -32,22 +32,22 @@ namespace Lora.GXM.OledDisplay1306
         public Font CurrentFont
         {
             get { return _currentFont; }
-            set { 
+            set
+            {
                 _currentFont = value;
                 _currentFontData = _currentFont.LegacyFont;
             }
         }
 
-
         /// <summary>
         /// quick & dirty unicode to ascii converter.
-        /// support the € symbol. 
+        /// support the € symbol.
         /// </summary>
         /// <param name="ch"></param>
         /// <returns></returns>
-        byte UnicodeToAscii(char ch) 
+        private byte UnicodeToAscii(char ch)
         {
-            // TODO: replace by an char extension method ? 
+            // TODO: replace by an char extension method ?
             if (ch < 127)
                 return (byte)ch;
             if ((((ushort)ch) & 0xFF00) == 0xC2)
@@ -62,7 +62,7 @@ namespace Lora.GXM.OledDisplay1306
         /// </summary>
         /// <param name="str">string to ascii-ize</param>
         /// <returns>byte array of ascii encoded character</returns>
-        byte[] utf8ascii(string str)
+        private byte[] utf8ascii(string str)
         {
             var l = str.Length;
             var s = new byte[l];
@@ -71,7 +71,6 @@ namespace Lora.GXM.OledDisplay1306
                 s[i] = UnicodeToAscii(str[i]);
             return s;
         }
-
 
         /// <summary>
         /// Draw one char from the font data on a specified position
@@ -83,48 +82,47 @@ namespace Lora.GXM.OledDisplay1306
         /// <param name="data">font data to display</param>
         /// <param name="offset">offset of char to print</param>
         /// <param name="bytesInData">size of data char to display</param>
-        private void DrawFontChar(int xMove, int yMove, int width, int height, byte[] data, int offset, int bytesInData) 
+        private void DrawFontChar(int xMove, int yMove, int width, int height, byte[] data, int offset, int bytesInData)
         {
-            if (width< 0 || height< 0) return;
-            if (yMove + height< 0 || yMove> _displayHeight)  return;
-            if (xMove + width< 0 || xMove> _displayWidth)   return;
+            if (width < 0 || height < 0) return;
+            if (yMove + height < 0 || yMove > _displayHeight) return;
+            if (xMove + width < 0 || xMove > _displayWidth) return;
 
             byte rasterHeight = (byte)(1 + ((height - 1) >> 3)); // fast ceil(height / 8.0)
             int yOffset = (byte)(yMove & 7);
 
-            bytesInData = bytesInData == 0 ? width* rasterHeight : bytesInData;
+            bytesInData = bytesInData == 0 ? width * rasterHeight : bytesInData;
 
             int initYMove = yMove;
             int initYOffset = yOffset;
 
-
-            for (int i = 0; i<bytesInData; i++) 
+            for (int i = 0; i < bytesInData; i++)
             {
                 // Reset if next horizontal drawing phase is started.
-                if (i % rasterHeight == 0) 
+                if (i % rasterHeight == 0)
                 {
-                  yMove   = initYMove;
-                  yOffset = initYOffset;
+                    yMove = initYMove;
+                    yOffset = initYOffset;
                 }
 
-                byte currentByte = data[offset+i];// pgm_read_byte(data + offset + i);
+                byte currentByte = data[offset + i];// pgm_read_byte(data + offset + i);
 
                 int xPos = xMove + (i / rasterHeight);
                 int yPos = ((yMove >> 3) + (i % rasterHeight)) * _displayWidth;
 
                 int dataPos = xPos + yPos;
 
-                if (dataPos >=  0  && dataPos<_displayBufferSize && xPos    >=  0  && xPos< _displayWidth ) 
+                if (dataPos >= 0 && dataPos < _displayBufferSize && xPos >= 0 && xPos < _displayWidth)
                 {
-                    if (yOffset >= 0) 
+                    if (yOffset >= 0)
                     {
-                        switch (_currentColor) 
+                        switch (_currentColor)
                         {
                             case OledColor.White: displayBuffer[dataPos] |= (byte)(currentByte << yOffset); break;
-                            case OledColor.Black : displayBuffer[dataPos] &= (byte)(~(currentByte << yOffset)); break;
+                            case OledColor.Black: displayBuffer[dataPos] &= (byte)(~(currentByte << yOffset)); break;
                             case OledColor.Inverse: displayBuffer[dataPos] ^= (byte)(currentByte << yOffset); break;
                         }
-                        if (dataPos < (_displayBufferSize - _displayWidth)) 
+                        if (dataPos < (_displayBufferSize - _displayWidth))
                         {
                             switch (_currentColor)
                             {
@@ -133,12 +131,12 @@ namespace Lora.GXM.OledDisplay1306
                                 case OledColor.Inverse: displayBuffer[dataPos + _displayWidth] ^= (byte)(currentByte >> (8 - yOffset)); break;
                             }
                         }
-                    } 
-                    else 
+                    }
+                    else
                     {
                         // Make new offset position
                         yOffset = -yOffset;
-                        switch (_currentColor) 
+                        switch (_currentColor)
                         {
                             case OledColor.White: displayBuffer[dataPos] |= (byte)(currentByte >> yOffset); break;
                             case OledColor.Black: displayBuffer[dataPos] &= (byte)(~(currentByte >> yOffset)); break;
@@ -151,15 +149,13 @@ namespace Lora.GXM.OledDisplay1306
                         // and setting the new yOffset
                         yOffset = 8 - yOffset;
                     }
-
                 }
             }
         }
 
-
         /// <summary>
-        /// Draw a char on a specificposition. 
-        /// The function return the width of the char in pixel 
+        /// Draw a char on a specificposition.
+        /// The function return the width of the char in pixel
         /// </summary>
         /// <param name="x">X position</param>
         /// <param name="y">Y position </param>
@@ -167,7 +163,7 @@ namespace Lora.GXM.OledDisplay1306
         /// <returns>Width of the drawn char.</returns>
         public int DrawChar(int x, int y, char c)
         {
-            if (_currentFontData==null)
+            if (_currentFontData == null)
             {
                 Debug.WriteLine("ERROR: No current font selected !");
                 return 0; // nothing drawn
@@ -194,7 +190,7 @@ namespace Lora.GXM.OledDisplay1306
                     // Get the position of the char data
                     int charDataPosition = JUMPTABLE_START + sizeOfJumpTable + ((msbJumpToChar << 8) + lsbJumpToChar);
                     DrawFontChar(x, y, currentCharWidth, textHeight, _currentFontData, charDataPosition, charByteSize);
-               }
+                }
                 return currentCharWidth;
             }
             return 0; // nothing to draw
@@ -218,16 +214,14 @@ namespace Lora.GXM.OledDisplay1306
             {
                 byte charCode = (byte)(ascii - firstChar);
                 // 4 Bytes per char code
-                byte currentCharWidth = _currentFontData[JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_WIDTH]; 
+                byte currentCharWidth = _currentFontData[JUMPTABLE_START + charCode * JUMPTABLE_BYTES + JUMPTABLE_WIDTH];
                 return currentCharWidth;
             }
             return 0; // nothin drawn
         }
 
-
-
         /// <summary>
-        /// Draw a string on a specific position. 
+        /// Draw a string on a specific position.
         /// ONLY LEFT ALIGNMENT SUPPORTED
         /// </summary>
         /// <param name="x">X position</param>
@@ -243,25 +237,25 @@ namespace Lora.GXM.OledDisplay1306
 
             int origX = x;
             int txtLength = txt.Length; // cached value to avoid multiple call the the property
-            int start = 0, end = 0; // cursor to browse the string 
+            int start = 0, end = 0; // cursor to browse the string
             int width = 0; // width of line to display
             int offset = 0; // offset to respect requested alignment
             char c;
-            while (start<txtLength-1)
+            while (start < txtLength - 1)
             {
                 // extracting end of current line from the current start position && update width on each iteration
-                while( end<txtLength && !(txt[end]=='\n' || txt[end]=='\r'))
+                while (end < txtLength && !(txt[end] == '\n' || txt[end] == '\r'))
                 {
                     width += GetCharWidth(txt[end]);
                     end++;
                 }
 
                 // Compute left offset for current line
-                if (this.CurrentTextAlignement==TextAlignment.Center)
+                if (this.CurrentTextAlignement == TextAlignment.Center)
                 {
                     offset = width / 2;
                 }
-                else if (this.CurrentTextAlignement==TextAlignment.Right)
+                else if (this.CurrentTextAlignement == TextAlignment.Right)
                 {
                     offset = width;
                 }
@@ -270,7 +264,7 @@ namespace Lora.GXM.OledDisplay1306
                 for (int i = start; i < end; i++)
                 {
                     c = txt[i];
-                    x+= DrawChar(x-offset, y, c);
+                    x += DrawChar(x - offset, y, c);
                 }
 
                 end++; // to go after the current new line
@@ -279,8 +273,6 @@ namespace Lora.GXM.OledDisplay1306
                 x = origX;
                 y += this.CurrentFont.LegacyFont[HEIGHT_POS];
             }
-
-
         }
 
         /// <summary>
@@ -296,7 +288,7 @@ namespace Lora.GXM.OledDisplay1306
 
             //foreach (var c in txt) // HACK: generate a compiler error due to the lake of IEnumerable implementation on String class.
             char c;
-            for(int i=0;i<txt.Length;i++)
+            for (int i = 0; i < txt.Length; i++)
             {
                 c = txt[i];
                 if (c == '\n' || c == '\r')
@@ -341,6 +333,5 @@ namespace Lora.GXM.OledDisplay1306
         {
             return GetStringWidth(txt, txt.Length);
         }
-
     }
 }
